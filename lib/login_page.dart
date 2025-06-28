@@ -9,11 +9,48 @@ class LoginPage extends StatelessWidget {
           Column(
             children: <Widget>[
               SizedBox(height: 50), // Adjusted height to make space for the image
-              Image.network(
-                'https://thumbs.dreamstime.com/b/woman-working-remote-project-home-cartoon-character-female-freelancer-sitting-table-fulfilling-tasks-laptop-flat-181611910.jpg', // Replace with your network image URL
+              Container(
                 width: double.infinity,
                 height: 300, // Adjusted height for the image
-                fit: BoxFit.cover,
+                child: Image.network(
+                  'https://thumbs.dreamstime.com/b/woman-working-remote-project-home-cartoon-character-female-freelancer-sitting-table-fulfilling-tasks-laptop-flat-181611910.jpg',
+                  width: double.infinity,
+                  height: 300,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: double.infinity,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.blue[100]!, Colors.blue[300]!],
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        size: 100,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: double.infinity,
+                      height: 300,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
               Expanded(
                 child: Container(),

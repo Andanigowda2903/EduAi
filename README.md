@@ -97,3 +97,87 @@ Click the image above to watch EduAI in action!
 1️⃣ **Clone the repository:**  
 ```bash
 git clone https://github.com/HarshiSharma04/EduAI.git
+
+```
+
+## Project Structure
+
+- **Frontend**: Flutter web application (main directory)
+- **Backend**: Python Flask API (`backend/` directory)
+
+## Deployment to Vercel
+
+### Frontend (Flutter Web)
+
+1. **Install Flutter** (if not already installed):
+   ```bash
+   flutter doctor
+   ```
+
+2. **Get dependencies**:
+   ```bash
+   flutter pub get
+   ```
+
+3. **Build for web**:
+   ```bash
+   flutter build web --release
+   ```
+
+4. **Deploy to Vercel**:
+   - Connect your GitHub repository to Vercel
+   - Vercel will automatically detect the Flutter project and use the `vercel.json` configuration
+   - The build command and output directory are already configured
+
+### Backend (Python Flask)
+
+1. **Navigate to backend directory**:
+   ```bash
+   cd backend
+   ```
+
+2. **Deploy separately to Vercel**:
+   - Create a new Vercel project for the backend
+   - Point it to the `backend/` directory
+   - Vercel will use the `backend/vercel.json` configuration
+
+## Configuration
+
+### Frontend Configuration
+- `vercel.json`: Configures Flutter web build and routing
+- `web/index.html`: Updated for better web compatibility
+- Error handling added for network images
+
+### Backend Configuration
+- `backend/vercel.json`: Configures Python Flask deployment
+- `backend/requirements.txt`: Python dependencies
+- CORS enabled for cross-origin requests
+
+## Features
+
+- **Learning Style Assessment**: AI-powered learning style prediction
+- **Interactive UI**: Modern Flutter-based interface
+- **Responsive Design**: Works on web and mobile
+- **API Integration**: Flask backend for ML predictions
+
+## Development
+
+### Running Locally
+
+**Frontend**:
+```bash
+flutter run -d chrome
+```
+
+**Backend**:
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+## Notes
+
+- The frontend and backend should be deployed as separate Vercel projects
+- Update API endpoints in the Flutter app to point to your deployed backend URL
+- Ensure all environment variables are properly set in Vercel
