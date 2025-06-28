@@ -1,0 +1,56 @@
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.lock
+
+# Android
+android/
+*.apk
+*.aab
+
+# iOS
+ios/
+*.ipa
+
+# macOS
+macos/
+
+# Windows
+windows/
+
+# Linux
+linux/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backend (deploy separately)
+backend/
+
+# Jupyter notebooks
+*.ipynb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env 
