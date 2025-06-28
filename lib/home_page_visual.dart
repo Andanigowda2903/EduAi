@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'ai_tutor.dart';
 import 'focus_mode_page.dart'; // Import the Focus Mode page
+import 'my_learning_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
 }
+
+// Add a global key for navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class _HomePageState extends State<HomePage> {
   String? _selectedPreference; // Initialize as null to avoid the initial value error
@@ -35,6 +41,74 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedIndex = 0;
 
+  // Add a map for recommendations
+  Map<String, List<Map<String, String>>> recommendations = {
+    'Visual': [
+      {'title': 'Visual Learning Techniques', 'image': 'https://i.imgur.com/1.jpg'},
+      {'title': 'Mind Mapping for Visual Learners', 'image': 'https://i.imgur.com/2.jpg'},
+    ],
+    'Auditory': [
+      {'title': 'Auditory Study Tips', 'image': 'https://i.imgur.com/3.jpg'},
+      {'title': 'Podcasts for Learning', 'image': 'https://i.imgur.com/4.jpg'},
+    ],
+    'Reading/Writing': [
+      {'title': 'Effective Note Taking', 'image': 'https://i.imgur.com/5.jpg'},
+      {'title': 'Reading Strategies', 'image': 'https://i.imgur.com/6.jpg'},
+    ],
+    'Kinesthetic': [
+      {'title': 'Hands-on Science Experiments', 'image': 'https://i.imgur.com/7.jpg'},
+      {'title': 'Active Learning Activities', 'image': 'https://i.imgur.com/8.jpg'},
+    ],
+  };
+
+  List<String> completedSubjects = [];
+  List<String> watchedVideos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      completedSubjects = prefs.getStringList('completed_subjects') ?? [];
+      watchedVideos = prefs.getStringList('watched_videos') ?? [];
+    });
+  }
+
+  Future<void> _markSubjectCompleted(String subject) async {
+    if (!completedSubjects.contains(subject)) {
+      setState(() {
+        completedSubjects.add(subject);
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('completed_subjects', completedSubjects);
+      // Optionally, add to completed courses in MyLearningPage
+      final completedCourse = {
+        'name': subject + ' Mastery',
+        'subject': subject,
+        'duration': 10.0,
+        'completedDate': DateTime.now().toIso8601String(),
+        'grade': 'A',
+      };
+      List<String> completedCourses = prefs.getStringList('completed_courses') ?? [];
+      completedCourses.add(jsonEncode(completedCourse));
+      await prefs.setStringList('completed_courses', completedCourses);
+    }
+  }
+
+  Future<void> _markVideoWatched(String videoTitle) async {
+    if (!watchedVideos.contains(videoTitle)) {
+      setState(() {
+        watchedVideos.add(videoTitle);
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('watched_videos', watchedVideos);
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -44,8 +118,10 @@ class _HomePageState extends State<HomePage> {
       // Navigate to Home (current page)
         break;
       case 1:
-      // Navigate to My Learning
-      // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => MyLearningPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => MyLearningPage()),
+        );
         break;
       case 2:
         Navigator.push(
@@ -194,15 +270,14 @@ class _HomePageState extends State<HomePage> {
                 height: 200,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: videoTitles.length,
+                  itemCount: recommendations[_selectedPreference]?.length ?? 0,
                   itemBuilder: (BuildContext context, int index) {
-                    String videoTitle = videoTitles[index];
-                    String imageURL = videoImageUrls[index]; // Assuming you have a list of URLs
-
+                    final rec = recommendations[_selectedPreference]![index];
+                    bool isWatched = watchedVideos.contains(rec['title']);
                     return Padding(
                       padding: EdgeInsets.only(right: 10),
                       child: SizedBox(
-                        width: 200, // Fixed width for each card
+                        width: 200,
                         child: Card(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +285,7 @@ class _HomePageState extends State<HomePage> {
                               ClipRRect(
                                 borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
                                 child: Image.network(
-                                  imageURL, // Use the actual image URL here
+                                  rec['image']!,
                                   width: 200,
                                   height: 120,
                                   fit: BoxFit.cover,
@@ -218,14 +293,23 @@ class _HomePageState extends State<HomePage> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  videoTitle,
-                                  maxLines: 2, // Limit the number of lines
-                                  overflow: TextOverflow.ellipsis, // Handle overflow
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        rec['title']!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(isWatched ? Icons.check_circle : Icons.visibility),
+                                      color: isWatched ? Colors.green : Color(0xFF48A9A6),
+                                      onPressed: isWatched ? null : () => _markVideoWatched(rec['title']!),
+                                      tooltip: isWatched ? 'Watched' : 'Mark as Watched',
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -249,7 +333,44 @@ class _HomePageState extends State<HomePage> {
                   itemCount: subjectNames.length,
                   itemBuilder: (BuildContext context, int index) {
                     String subjectName = subjectNames[index];
-                    return _buildSubjectCard(subjectName, index);
+                    bool isCompleted = completedSubjects.contains(subjectName);
+                    return Padding(
+                      padding: EdgeInsets.only(right: 10),
+                      child: SizedBox(
+                        width: 150,
+                        child: Card(
+                          color: isCompleted ? Colors.green[100] : Colors.grey[200],
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.book,
+                                  size: 40,
+                                  color: isCompleted ? Colors.green : Color(0xFF48A9A6),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  subjectName,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: isCompleted ? null : () => _markSubjectCompleted(subjectName),
+                                  child: Text(isCompleted ? 'Completed' : 'Mark Completed'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isCompleted ? Colors.green : Color(0xFF48A9A6),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -333,37 +454,6 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Color(0xFF48A9A6), // Change the background color of the floating action button
         tooltip: 'Focus Mode',
         child: Icon(Icons.timer, color: Colors.white), // Change the color of the icon
-      ),
-    );
-  }
-
-  Widget _buildSubjectCard(String subjectName, int index) {
-    return Padding(
-      padding: EdgeInsets.only(right: 10),
-      child: SizedBox(
-        width: 150,
-        child: Card(
-          color: Colors.grey[200], // Neutral color for the card background
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.book,
-                  size: 40,
-                  color: Color(0xFF48A9A6), // Adjust the book icon color
-                ),
-                SizedBox(height: 8),
-                Text(
-                  subjectName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

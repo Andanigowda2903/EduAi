@@ -6,6 +6,7 @@ import 'learning_style_page.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
 import 'home_page_visual.dart';
+import 'my_learning_page.dart';
  // Ensure you have a signup_page.dart file
 
 void main() {
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/signup': (context) => SignUpPage(),
         '/learning-style': (context) => QuizScreen(),// Ensure this points to your signup page
+        '/my-learning': (context) => MyLearningPage(),
       },
     );
   }

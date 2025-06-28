@@ -15,6 +15,7 @@ class AiTutorPage extends StatefulWidget {
 
 class _AiTutorPageState extends State<AiTutorPage> {
   final Gemini gemini = Gemini.instance;
+  bool _isLoading = false;
 
   List<ChatMessage> messages = [];
 
@@ -27,6 +28,17 @@ class _AiTutorPageState extends State<AiTutorPage> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    // Add welcome message
+    messages.add(ChatMessage(
+      user: geminiUser,
+      createdAt: DateTime.now(),
+      text: "Hello! I'm your AI Tutor. I can help you with:\n• Homework questions\n• Study explanations\n• Math problems\n• Science concepts\n• Programming help\n\nWhat would you like to learn today?",
+    ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +46,9 @@ class _AiTutorPageState extends State<AiTutorPage> {
         centerTitle: true,
         title: const Text(
           "AI Tutor",
+          style: TextStyle(color: Colors.white),
         ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: _buildUI(),
     );
@@ -50,25 +64,41 @@ class _AiTutorPageState extends State<AiTutorPage> {
         ),
       ),
       child: DashChat(
-        inputOptions: InputOptions(trailing: [
-          IconButton(
-            onPressed: _sendMediaMessage,
-            icon: const Icon(
-              Icons.image,
-            ),
-          )
-        ]),
+        inputOptions: InputOptions(
+          trailing: [
+            if (_isLoading)
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF48A9A6)),
+                  ),
+                ),
+              ),
+            IconButton(
+              onPressed: _isLoading ? null : _sendMediaMessage,
+              icon: const Icon(Icons.image),
+            )
+          ],
+        ),
         currentUser: currentUser,
-        onSend: _sendMessage,
+        onSend: _isLoading ? (message) {} : _sendMessage,
         messages: messages,
       ),
     );
   }
 
   void _sendMessage(ChatMessage chatMessage) {
+    if (chatMessage.text.trim().isEmpty) return;
+    
     setState(() {
       messages = [chatMessage, ...messages];
+      _isLoading = true;
     });
+
     try {
       String question = chatMessage.text;
       List<Uint8List>? images;
@@ -77,6 +107,17 @@ class _AiTutorPageState extends State<AiTutorPage> {
           File(chatMessage.medias!.first.url).readAsBytesSync(),
         ];
       }
+
+      // Add a loading message
+      ChatMessage loadingMessage = ChatMessage(
+        user: geminiUser,
+        createdAt: DateTime.now(),
+        text: "Thinking...",
+      );
+      setState(() {
+        messages = [loadingMessage, ...messages];
+      });
+
       gemini.streamGenerateContent(
         question,
         images: images,
@@ -87,16 +128,25 @@ class _AiTutorPageState extends State<AiTutorPage> {
           String response = event.content?.parts?.fold(
               "", (previous, current) => "$previous ${current.text}") ??
               "";
-          lastMessage.text += response;
-          setState(
-                () {
-              messages = [lastMessage!, ...messages];
-            },
-          );
+          
+          if (response.trim().isEmpty) {
+            response = "I'm sorry, I couldn't generate a response. Please try asking your question in a different way.";
+          }
+          
+          lastMessage.text = response;
+          setState(() {
+            messages = [lastMessage!, ...messages];
+            _isLoading = false;
+          });
         } else {
           String response = event.content?.parts?.fold(
               "", (previous, current) => "$previous ${current.text}") ??
               "";
+          
+          if (response.trim().isEmpty) {
+            response = "I'm sorry, I couldn't generate a response. Please try asking your question in a different way.";
+          }
+          
           ChatMessage message = ChatMessage(
             user: geminiUser,
             createdAt: DateTime.now(),
@@ -104,15 +154,48 @@ class _AiTutorPageState extends State<AiTutorPage> {
           );
           setState(() {
             messages = [message, ...messages];
+            _isLoading = false;
           });
         }
+      }, onError: (error) {
+        print("Gemini API Error: $error");
+        // Remove loading message and add error message
+        if (messages.isNotEmpty && messages.first.user == geminiUser && messages.first.text == "Thinking...") {
+          messages.removeAt(0);
+        }
+        
+        ChatMessage errorMessage = ChatMessage(
+          user: geminiUser,
+          createdAt: DateTime.now(),
+          text: "I'm sorry, I'm having trouble connecting right now. Please check your internet connection and try again. If the problem persists, you can try asking a simpler question.",
+        );
+        setState(() {
+          messages = [errorMessage, ...messages];
+          _isLoading = false;
+        });
       });
     } catch (e) {
-      print(e);
+      print("Error in _sendMessage: $e");
+      // Remove loading message and add error message
+      if (messages.isNotEmpty && messages.first.user == geminiUser && messages.first.text == "Thinking...") {
+        messages.removeAt(0);
+      }
+      
+      ChatMessage errorMessage = ChatMessage(
+        user: geminiUser,
+        createdAt: DateTime.now(),
+        text: "I'm sorry, something went wrong. Please try again in a moment.",
+      );
+      setState(() {
+        messages = [errorMessage, ...messages];
+        _isLoading = false;
+      });
     }
   }
 
   void _sendMediaMessage() async {
+    if (_isLoading) return;
+    
     ImagePicker picker = ImagePicker();
     XFile? file = await picker.pickImage(
       source: ImageSource.gallery,
@@ -121,7 +204,7 @@ class _AiTutorPageState extends State<AiTutorPage> {
       ChatMessage chatMessage = ChatMessage(
         user: currentUser,
         createdAt: DateTime.now(),
-        text: "Describe this picture?",
+        text: "Please describe this image and help me understand what I'm looking at.",
         medias: [
           ChatMedia(
             url: file.path,
